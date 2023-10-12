@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 import os
+import json
 
 # Set the PYTHONIOENCODING environment variable to UTF-8
 os.environ['PYTHONIOENCODING'] = 'utf-8'
@@ -81,16 +82,31 @@ if __name__ == "__main__":
     url = "https://taiko.namco-ch.net/taiko/songlist/pops.php#sgnavi"
     data = scrape_data(url)
 
-    with open('output.txt', 'w', encoding='utf-8') as file:
-        for item in data:
-            song_name = item['songName'] if item['songName'] else ''
-            song_artist = item['songArtist'] if item['songArtist'] else ''
-            papamama = item['papamama']
-            kantan = item['kantan'] if item['kantan'] is not None else ''
-            futsuu = item['futsuu'] if item['futsuu'] is not None else ''
-            muzukashii = item['muzukashii'] if item['muzukashii'] is not None else ''
-            oni = item['oni'] if item['oni'] is not None else ''
-            ura_oni = item['uraOni'] if item['uraOni'] is not None else ''
+    # Create a list of dictionaries
+    songs_list = []
+    for item in data:
+        song_name = item['songName'] if item['songName'] else ''
+        song_artist = item['songArtist'] if item['songArtist'] else ''
+        papamama = item['papamama']
+        kantan = item['kantan'] if item['kantan'] is not None else ''
+        futsuu = item['futsuu'] if item['futsuu'] is not None else ''
+        muzukashii = item['muzukashii'] if item['muzukashii'] is not None else ''
+        oni = item['oni'] if item['oni'] is not None else ''
+        ura_oni = item['uraOni'] if item['uraOni'] is not None else ''
 
-            # Write the data to a file with UTF-8 encoding
-            file.write(f"{song_name} {song_artist} {papamama} {kantan} {futsuu} {muzukashii} {oni} {ura_oni}\n")
+        # Create a dictionary for each song and append it to the list
+        song_data = {
+            'songName': song_name,
+            'songArtist': song_artist,
+            'papamama': papamama,
+            'kantan': kantan,
+            'futsuu': futsuu,
+            'muzukashii': muzukashii,
+            'oni': oni,
+            'uraOni': ura_oni
+        }
+        songs_list.append(song_data)
+
+    # Serialize the list of dictionaries into a JSON object
+    with open('output.json', 'w', encoding='utf-8') as json_file:
+        json.dump(songs_list, json_file, ensure_ascii=False, indent=4)
