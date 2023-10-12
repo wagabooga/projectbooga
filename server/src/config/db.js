@@ -1,7 +1,9 @@
 const mongoose = require('mongoose');
-const pass = "LckZoMpQ26tvuuiH";
+require('dotenv').config()
 
-mongoose.connect(`mongodb+srv://waga:${pass}@cluster0.l9iwjy1.mongodb.net/?retryWrites=true&w=majority`, {
+
+
+mongoose.connect(`mongodb+srv://waga:${process.env.DB_PASSWORD}@cluster0.l9iwjy1.mongodb.net/?retryWrites=true&w=majority`, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 });
