@@ -3,16 +3,16 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const nodemailer = require('nodemailer');
 const router = require('express').Router();
+const { registerValidation } = require('../validators/userValidator');
 
-
-// Configure Nodemailer
-let transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'mattyhutwojk@gmail.com',
-        pass: 'Memelord69420!'
-    }
-});
+// // Configure Nodemailer
+// let transporter = nodemailer.createTransport({
+//     service: 'gmail',
+//     auth: {
+//         user: 'email@gmail.com',
+//         pass: 'password123!'
+//     }
+// });
 
 
 // Salt rounds for bcrypt hashing
@@ -23,28 +23,29 @@ const jwtSecret = 'YOUR_SECRET_KEY'; // You might want to store this in environm
 
 // User Registration
 router.post('/register', async (req, res) => {
-    console.log("hit register")
+    // Validate the user input
+    const { error } = registerValidation(req.body);
+    if (error) return res.status(400).send(error.details[0].message);
+
+    // Check if the user is already in the database
+    const emailExist = await User.findOne({ email: req.body.email });
+    if (emailExist) return res.status(400).send('Email already exists');
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(req.body.password, salt);
+
+    // Create a new user
+    const user = new User({
+        name: req.body.name,
+        email: req.body.email,
+        password: hashedPassword
+    });
     try {
-        // Hashing the user password
-        const hashedPassword = await bcrypt.hash(req.body.password, saltRounds);
-        
-        // Creating a new user
-        const user = new User({
-            email: req.body.email,
-            password: hashedPassword,
-            username: req.body.username,
-        });
-
-        // Saving the user to the database
         const savedUser = await user.save();
-        res.status(201).send({ message: 'Registration successful', userId: savedUser._id });
-
+        res.send({ user: user._id });
     } catch (err) {
-        if (err.code === 11000) {
-            res.status(400).send('Email already registered');
-        } else {
-            res.status(400).send('Registration failed, please try again');
-        }
+        res.status(400).send(err);
     }
 });
 
