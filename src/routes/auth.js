@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const nodemailer = require('nodemailer');
 const router = require('express').Router();
-const { registerValidation } = require('../validators/userValidator');
+const { registerValidation, loginValidation} = require('../validators/userValidator');
 
 // // Configure Nodemailer
 // let transporter = nodemailer.createTransport({
@@ -15,11 +15,8 @@ const { registerValidation } = require('../validators/userValidator');
 // });
 
 
-// Salt rounds for bcrypt hashing
-const saltRounds = 10;
-
 // Secret key for JWT signing
-const jwtSecret = 'YOUR_SECRET_KEY'; // You might want to store this in environment variables
+// const jwtSecret = process.env.JWT_SECRET; // You might want to store this in environment variables
 
 // User Registration
 router.post('/register', async (req, res) => {
@@ -31,15 +28,10 @@ router.post('/register', async (req, res) => {
     const emailExist = await User.findOne({ email: req.body.email });
     if (emailExist) return res.status(400).send('Email already exists');
 
-    // Hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(req.body.password, salt);
-
     // Create a new user
     const user = new User({
-        name: req.body.name,
         email: req.body.email,
-        password: hashedPassword
+        password: req.body.password  // saving plain text password, middleware will hash it
     });
     try {
         const savedUser = await user.save();
@@ -49,53 +41,30 @@ router.post('/register', async (req, res) => {
     }
 });
 
+
 // User Login
 router.post('/login', async (req, res) => {
+    // You can add a login validation similar to the registration validation
+    const { error } = loginValidation(req.body); 
+    if (error) return res.status(400).send(error.details[0].message);
+
     try {
         // Finding the user by email
         const user = await User.findOne({ email: req.body.email });
-        if (!user) return res.status(400).send('Email or password is wrong');
+        if (!user) return res.status(400).send('Invalid Credentials'); // Generalized error message
 
         // Comparing hashed passwords
         const validPass = await bcrypt.compare(req.body.password, user.password);
-        if (!validPass) return res.status(400).send('Email or password is wrong');
+        if (!validPass) return res.status(400).send('Invalid Credentials'); // Generalized error message
 
         // Creating a JWT token
-        const token = jwt.sign({ _id: user._id }, jwtSecret);
+        const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET);
         res.header('auth-token', token).send({ message: 'Login successful', token: token });
 
     } catch (err) {
-        res.status(400).send('Login failed, please check your credentials and try again');
+        res.status(500).send('An error occurred while trying to log in'); // General server error
     }
 });
 
-router.post('/password-reset', async (req, res) => {
-    try {
-        const user = await User.findOne({ email: req.body.email });
-        if (!user) return res.status(400).send('No account with that email address exists.');
-
-        // Generate a temporary password
-        const tempPassword = Math.random().toString(36).slice(-8);
-        const hashedPassword = await bcrypt.hash(tempPassword, saltRounds);
-
-        user.password = hashedPassword;
-        await user.save();
-        // Send email with the temporary password
-        let mailOptions = {
-            from: 'YOUR_EMAIL@gmail.com',
-            to: user.email,
-            subject: 'Password Reset',
-            text: `Your temporary password is: ${tempPassword}`
-        };
-
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) return res.status(400).send('Failed to send the email, please try again');
-            res.send('Email sent with the temporary password');
-        });
-
-    } catch (err) {
-        res.status(400).send('An error occurred while resetting the password.');
-    }
-});
 
 module.exports = router
