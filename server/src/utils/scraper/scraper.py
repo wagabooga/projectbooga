@@ -18,7 +18,7 @@ def map_difficulty(difficulty_text):
         '7': 7,
         '8': 8,
         '9': 9,
-        'Ten': 10,
+        '10': 10,
         '-': None  # For null values
     }
 
@@ -79,7 +79,7 @@ def scrape_data(url):
         return []
 
 if __name__ == "__main__":
-    url = "https://taiko.namco-ch.net/taiko/songlist/pops.php#sgnavi"
+    url = "https://taiko.namco-ch.net/taiko/songlist/variety.php#sgnavi"
     data = scrape_data(url)
 
     # Create a list of dictionaries
